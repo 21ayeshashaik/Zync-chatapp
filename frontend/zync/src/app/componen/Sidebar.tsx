@@ -9,7 +9,7 @@ const dummyChats = [
 ];
 
 export default function Sidebar() {
-  const [chats, setChats] = useState(dummyChats);
+  const [chats] = useState(dummyChats);
   const [activeChat, setActiveChat] = useState<number | null>(null);
 
   return (

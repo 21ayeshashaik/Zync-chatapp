@@ -40,7 +40,8 @@ export default function RegisterPage() {
       } else {
         router.push("/chat");
       }
-    } catch (err) {
+    } catch (error) {
+      console.error("Network error:", error);
       setError("Network error");
     }
   };

@@ -45,8 +45,8 @@ export default function ImageUploader({ onSend, onCancel }: ImageUploaderProps) 
       <div className="bg-gray-100 p-3 rounded-lg max-w-xs">
         <img
           src={previewUrl}
-          alt="Preview"
-          className="w-full h-32 object-cover rounded-lg mb-2"
+          alt="Image preview"
+          className="w-full h-full object-cover rounded"
         />
         
         <div className="flex items-center justify-between">

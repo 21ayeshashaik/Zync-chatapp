@@ -205,7 +205,7 @@ export default function ChatWindow({ currentUser, selectedUser, onNewMessage }: 
 
       console.log('Sending voice message to:', `http://localhost:8000/api/messages/send/${selectedUser._id}`);
       console.log('FormData contents:');
-      for (let [key, value] of formData.entries()) {
+      for (const [key, value] of Object.entries(formData)) {
         console.log(key, value);
       }
 

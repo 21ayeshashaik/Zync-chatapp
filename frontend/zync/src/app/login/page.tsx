@@ -32,7 +32,8 @@ export default function LoginPage() {
       } else {
         router.push("/chat");
       }
-    } catch (err) {
+    } catch (error) {
+      console.error("Network error:", error);
       setError("Network error");
     }
   };
@@ -71,12 +72,10 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="mt-4 text-center text-sm text-gray-600">
-          Don't have an account?{" "}
-          <Link href="/register" className="text-green-600 font-medium hover:underline">
-            Register here
-          </Link>
-        </p>
+        <p className="text-gray-600 mb-6">Don&apos;t have an account?</p>
+        <Link href="/register" className="text-green-600 font-medium hover:underline">
+          Register here
+        </Link>
       </div>
     </div>
   );
