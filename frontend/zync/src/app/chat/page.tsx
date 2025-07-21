@@ -26,7 +26,7 @@ export default function ChatPage() {
 
   const checkAuth = async () => {
     try {
-      const res = await fetch("http://localhost:8000/api/auth/me", {
+      const res = await fetch("https://zync-chatapp-4.onrender.com/api/auth/me", {
         credentials: "include"
       });
       
@@ -51,7 +51,7 @@ const handleLogout = async () => {
   if (!confirmLogout) return;
 
   try {
-    const res = await fetch("http://localhost:8000/api/auth/logout", {
+    const res = await fetch("https://zync-chatapp-4.onrender.com/api/auth/logout", {
       method: "POST",
       credentials: "include",
     });

@@ -18,10 +18,10 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const res = await fetch("http://localhost:8000/api/auth/login", {
+      const res = await fetch("https://zync-chatapp-4.onrender.com/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include", // ✅ for cookies
+        credentials: "include",
         body: JSON.stringify(form),
       });
 

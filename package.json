@@ -5,7 +5,9 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "dev": "nodemon backend/index.js"
+    "dev": "nodemon backend/index.js",
+    "start": "node backend/index.js",
+    "build": "echo 'No build step needed for backend'"
   },
   "keywords": [],
   "author": "",
