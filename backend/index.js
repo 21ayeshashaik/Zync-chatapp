@@ -25,7 +25,11 @@ const PORT = process.env.PORT || 8000;
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
-    origin: ['http://localhost:3002', 'http://localhost:3000'],
+    origin: [
+        'http://localhost:3002', 
+        'http://localhost:3000',
+        'https://zync-chatapp-6zz8.vercel.app/'  // Add your actual Vercel URL
+    ],
     credentials: true
 }));
 
