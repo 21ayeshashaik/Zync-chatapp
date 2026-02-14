@@ -1,37 +1,41 @@
 import mongoose from "mongoose";
 
 const userSchema = mongoose.Schema({
-    fullname:{
+    fullname: {
         type: String,
         required: true
     },
-    username:{
+    username: {
         type: String,
         required: true,
-        unique:true
+        unique: true
     },
-    email:{
+    email: {
         type: String,
         required: true,
-        unique:true
+        unique: true
     },
-    gender:{
+    gender: {
         type: String,
         required: true,
-        enum:["male","female"]
+        enum: ["male", "female", "other"]
     },
-    password:{
+    password: {
         type: String,
         required: true,
-        minlength:6,
+        minlength: 6,
     },
-    profilepic:{
+    profilepic: {
         type: String,
         required: true,
-        default:""
+        default: ""
+    },
+    bio: {
+        type: String,
+        default: "Hey there! I'm using Zync."
     }
-},{timestamps:true});
+}, { timestamps: true });
 
-const User = mongoose.model("User",userSchema)
+const User = mongoose.model("User", userSchema)
 
 export default User;

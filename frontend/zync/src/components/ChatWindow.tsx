@@ -1,10 +1,11 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { Send, Paperclip, MoreVertical, Download, Play, Pause, MessageCircle } from "lucide-react";
+import { Send, Paperclip, MoreVertical, Download, Play, Pause, MessageCircle, Smile } from "lucide-react";
 import { useSocket } from "@/context/SocketContext";
 import toast from "react-hot-toast";
 import VoiceRecorder from "./voiceRecorder";
 import ImageUploader from "./ImageUploader";
+import { API_URL } from "@/lib/constants";
 
 interface User {
   _id: string;
@@ -57,26 +58,26 @@ export default function ChatWindow({ currentUser, selectedUser, onNewMessage }: 
 
     const handleNewMessage = (message: Message) => {
       console.log("Received new message via socket:", message);
-      
+
       const senderId = typeof message.senderId === 'string' ? message.senderId : message.senderId._id;
       const receiverId = typeof message.reciverId === 'string' ? message.reciverId : message.reciverId._id;
-      
+
       // Only add message if it's for current conversation
-      if (selectedUser && 
-          ((senderId === selectedUser._id && receiverId === currentUser._id) || 
-           (senderId === currentUser._id && receiverId === selectedUser._id))) {
-        
+      if (selectedUser &&
+        ((senderId === selectedUser._id && receiverId === currentUser._id) ||
+          (senderId === currentUser._id && receiverId === selectedUser._id))) {
+
         setMessages(prev => {
           const exists = prev.some(msg => msg._id === message._id);
           if (exists) return prev;
-          
+
           // Add new message and sort in reverse chronological order (newest first)
-          return [...prev, message].sort((a, b) => 
+          return [...prev, message].sort((a, b) =>
             new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
           );
         });
       }
-      
+
       // Trigger unread count for messages received by current user from others
       if (receiverId === currentUser._id && senderId !== currentUser._id && onNewMessage) {
         onNewMessage(senderId);
@@ -107,16 +108,16 @@ export default function ChatWindow({ currentUser, selectedUser, onNewMessage }: 
 
   const fetchMessages = async () => {
     if (!selectedUser) return;
-    
+
     try {
-      const res = await fetch(`http://localhost:8000/api/messages/${selectedUser._id}`, {
+      const res = await fetch(`${API_URL}/api/messages/${selectedUser._id}`, {
         credentials: "include"
       });
-      
+
       if (res.ok) {
         const data = await res.json();
         // Sort messages by creation time (oldest to newest for display)
-        setMessages(data.sort((a: Message, b: Message) => 
+        setMessages(data.sort((a: Message, b: Message) =>
           new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
         ));
       }
@@ -128,7 +129,7 @@ export default function ChatWindow({ currentUser, selectedUser, onNewMessage }: 
 
   const sendTextMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!newMessage.trim() || !selectedUser || isSending) return;
 
     const messageText = newMessage.trim();
@@ -148,7 +149,7 @@ export default function ChatWindow({ currentUser, selectedUser, onNewMessage }: 
     setMessages(prev => [...prev, optimisticMessage]);
 
     try {
-      const res = await fetch(`http://localhost:8000/api/messages/send/${selectedUser._id}`, {
+      const res = await fetch(`${API_URL}/api/messages/send/${selectedUser._id}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -162,12 +163,12 @@ export default function ChatWindow({ currentUser, selectedUser, onNewMessage }: 
       }
 
       const sentMessage = await res.json();
-      setMessages(prev => 
-        prev.map(msg => 
+      setMessages(prev =>
+        prev.map(msg =>
           msg._id === optimisticMessage._id ? sentMessage : msg
         )
       );
-      
+
     } catch (error) {
       console.error("Send message error:", error);
       toast.error("Failed to send message");
@@ -199,53 +200,32 @@ export default function ChatWindow({ currentUser, selectedUser, onNewMessage }: 
 
     try {
       const formData = new FormData();
-      formData.append('file', audioBlob, 'voice-message.webm');
       formData.append('messageType', 'voice');
       formData.append('duration', duration.toString());
+      formData.append('file', audioBlob, 'voice-message.webm');
 
-      console.log('Sending voice message to:', `http://localhost:8000/api/messages/send/${selectedUser._id}`);
-      console.log('FormData contents:');
-      for (const [key, value] of Object.entries(formData)) {
-        console.log(key, value);
-      }
-
-      const res = await fetch(`http://localhost:8000/api/messages/send/${selectedUser._id}`, {
+      const res = await fetch(`${API_URL}/api/messages/send/${selectedUser._id}`, {
         method: "POST",
         credentials: "include",
         body: formData
       });
 
-      console.log('Voice message response status:', res.status);
-      console.log('Response headers:', Object.fromEntries(res.headers.entries()));
-
       if (!res.ok) {
-        const errorText = await res.text();
-        console.error('Voice message error response:', errorText);
-        
-        let errorData;
-        try {
-          errorData = JSON.parse(errorText);
-        } catch {
-          errorData = { message: errorText || "Failed to send voice message" };
-        }
-        
-        throw new Error(errorData.message || "Failed to send voice message");
+        throw new Error("Failed to send voice message");
       }
 
       const sentMessage = await res.json();
-      console.log('Voice message sent successfully:', sentMessage);
-      
-      setMessages(prev => 
-        prev.map(msg => 
+      setMessages(prev =>
+        prev.map(msg =>
           msg._id === optimisticMessage._id ? sentMessage : msg
         )
       );
-      
+
       toast.success("Voice message sent!");
-      
+
     } catch (error) {
       console.error("Send voice message error:", error);
-      toast.error(`Failed to send voice message: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(`Failed to send voice message`);
       setMessages(prev => prev.filter(msg => msg._id !== optimisticMessage._id));
     } finally {
       setIsSending(false);
@@ -273,36 +253,28 @@ export default function ChatWindow({ currentUser, selectedUser, onNewMessage }: 
 
     try {
       const formData = new FormData();
-      formData.append('file', imageFile);
       formData.append('messageType', 'image');
+      formData.append('file', imageFile);
 
-      console.log('Sending image to:', `http://localhost:8000/api/messages/send/${selectedUser._id}`);
-
-      const res = await fetch(`http://localhost:8000/api/messages/send/${selectedUser._id}`, {
+      const res = await fetch(`${API_URL}/api/messages/send/${selectedUser._id}`, {
         method: "POST",
         credentials: "include",
         body: formData
       });
 
-      console.log('Image response status:', res.status);
-
       if (!res.ok) {
-        const errorData = await res.json();
-        console.error('Image error:', errorData);
-        throw new Error(errorData.message || "Failed to send image");
+        throw new Error("Failed to send image");
       }
 
       const sentMessage = await res.json();
-      console.log('Image sent successfully:', sentMessage);
-      
-      setMessages(prev => 
-        prev.map(msg => 
+      setMessages(prev =>
+        prev.map(msg =>
           msg._id === optimisticMessage._id ? sentMessage : msg
         )
       );
-      
+
       toast.success("Image sent!");
-      
+
     } catch (error) {
       console.error("Send image error:", error);
       toast.error("Failed to send image");
@@ -314,7 +286,7 @@ export default function ChatWindow({ currentUser, selectedUser, onNewMessage }: 
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setNewMessage(e.target.value);
-    
+
     if (socket && selectedUser) {
       socket.emit('typing', {
         senderId: currentUser._id,
@@ -336,52 +308,59 @@ export default function ChatWindow({ currentUser, selectedUser, onNewMessage }: 
 
   if (!selectedUser) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="w-32 h-32 bg-gray-200 rounded-full mx-auto mb-4 flex items-center justify-center">
-            <Send size={48} className="text-gray-400" />
+      <div className="flex-1 flex flex-col items-center justify-center bg-[#0f172a] relative overflow-hidden">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[120px]"></div>
+        <div className="text-center relative z-10">
+          <div className="w-24 h-24 bg-gradient-to-tr from-purple-600 to-blue-600 rounded-3xl mx-auto mb-6 flex items-center justify-center shadow-2xl rotate-3 transform transition-transform hover:rotate-0 duration-500">
+            <MessageCircle size={48} className="text-white" />
           </div>
-          <h2 className="text-2xl font-semibold text-gray-700 mb-2">Welcome to Zync Chat</h2>
-          <p className="text-gray-500">Select a conversation to start messaging</p>
+          <h2 className="text-3xl font-bold text-white mb-2 tracking-tight">Select a Chat</h2>
+          <p className="text-gray-400 max-w-[250px] mx-auto text-sm leading-relaxed">
+            Choose a friend from the sidebar and start your conversation on Zync
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 flex flex-col">
+    <div className="flex-1 flex flex-col bg-[#0f172a] h-full relative">
+      {/* Background Decor */}
+      <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-blue-600/5 rounded-full blur-[100px] pointer-events-none"></div>
+
       {/* Chat Header */}
-      <div className="bg-white border-b border-gray-200 p-4">
+      <div className="bg-[#1e293b]/80 backdrop-blur-md border-b border-white/5 p-4 z-20 sticky top-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="relative">
               <img
                 src={selectedUser.profilepic}
                 alt={selectedUser.fullname}
-                className="w-10 h-10 rounded-full object-cover"
+                className="w-11 h-11 rounded-full object-cover border-2 border-white/10"
                 onError={(e) => {
                   e.currentTarget.src = `https://avatar.iran.liara.run/public/boy?username=${selectedUser.username}`;
                 }}
               />
               {isOnline && (
-                <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
+                <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-[#1e293b] rounded-full"></div>
               )}
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900">{selectedUser.fullname}</h3>
-              <p className="text-sm text-gray-500">
+              <h3 className="font-bold text-white text-lg tracking-tight">{selectedUser.fullname}</h3>
+              <p className={`text-xs font-medium flex items-center ${isTyping ? "text-purple-400 animate-pulse" : isOnline ? "text-green-400" : "text-gray-500"}`}>
+                <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${isTyping ? "bg-purple-400" : isOnline ? "bg-green-400" : "bg-gray-500"}`}></span>
                 {isTyping ? "Typing..." : isOnline ? "Online" : "Offline"}
               </p>
             </div>
           </div>
-          <button className="p-2 hover:bg-gray-100 rounded-full">
-            <MoreVertical size={20} className="text-gray-600" />
+          <button className="p-2.5 hover:bg-white/5 rounded-xl transition-all active:scale-90 text-gray-400">
+            <MoreVertical size={20} />
           </button>
         </div>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+      <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar scroll-smooth">
         {messages.map((message) => (
           <MessageBubble
             key={message._id}
@@ -394,75 +373,80 @@ export default function ChatWindow({ currentUser, selectedUser, onNewMessage }: 
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Message Input */}
-      <div className="bg-white border-t border-gray-200 p-4">
+      {/* Message Input Area */}
+      <div className="bg-[#1e293b]/60 backdrop-blur-xl border-t border-white/5 p-4 relative z-20">
         {showVoiceRecorder && (
-          <div className="mb-3">
-            <VoiceRecorder 
+          <div className="mb-4 animate-in slide-in-from-bottom-5 duration-300">
+            <VoiceRecorder
               onSend={sendVoiceMessage}
               onCancel={() => setShowVoiceRecorder(false)}
             />
           </div>
         )}
-        
+
         {showImageUploader && (
-          <div className="mb-3">
-            <ImageUploader 
+          <div className="mb-4 animate-in slide-in-from-bottom-5 duration-300">
+            <ImageUploader
               onSend={sendImageMessage}
               onCancel={() => setShowImageUploader(false)}
             />
           </div>
         )}
 
-        <form onSubmit={sendTextMessage} className="flex items-center space-x-2">
-          <button
-            type="button"
-            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full"
-            onClick={() => setShowImageUploader(!showImageUploader)}
-          >
-            <Paperclip size={20} />
-          </button>
-          
-          <div className="flex-1 relative">
+        <form onSubmit={sendTextMessage} className="flex items-center gap-3">
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              className={`p-2.5 rounded-xl transition-all active:scale-90 ${showImageUploader ? 'bg-purple-600 text-white shadow-lg shadow-purple-900/40' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
+              onClick={() => {
+                setShowImageUploader(!showImageUploader);
+                setShowVoiceRecorder(false);
+              }}
+              title="Send Image"
+            >
+              <Paperclip size={20} />
+            </button>
+            <button
+              type="button"
+              className={`p-2.5 rounded-xl transition-all active:scale-90 ${showVoiceRecorder ? 'bg-purple-600 text-white shadow-lg shadow-purple-900/40' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
+              onClick={() => {
+                setShowVoiceRecorder(!showVoiceRecorder);
+                setShowImageUploader(false);
+              }}
+              title="Voice Message"
+            >
+              <MessageCircle size={20} />
+            </button>
+          </div>
+
+          <div className="flex-1 relative group">
             <input
               type="text"
               value={newMessage}
               onChange={handleInputChange}
-              placeholder="Type a message..."
+              placeholder="Write a message..."
               disabled={isSending || showVoiceRecorder || showImageUploader}
-              className="w-full px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50"
+              className="w-full bg-slate-800/80 border border-white/5 text-gray-100 pl-5 pr-12 py-3.5 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-500/30 transition-all placeholder:text-gray-500 disabled:opacity-50"
             />
-          </div>
-
-          <div className="flex items-center space-x-1">
             <button
               type="button"
-              onClick={() => setShowImageUploader(!showImageUploader)}
-              className={`p-2 rounded-full cursor-pointer ${showImageUploader ? 'bg-red-100 text-red-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-purple-400 transition-colors"
             >
-              <Paperclip size={20} />
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setShowVoiceRecorder(!showVoiceRecorder)}
-              className={`p-2 rounded-full cursor-pointer ${showVoiceRecorder ? 'bg-red-100 text-red-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}
-            >
-              <MessageCircle size={20} />
-            </button>
-
-            <button
-              type="submit"
-              disabled={!newMessage.trim() || isSending}
-              className="p-2 bg-green-600 text-white rounded-full hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSending ? (
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-              ) : (
-                <Send size={20} />
-              )}
+              <Smile size={20} />
             </button>
           </div>
+
+          <button
+            type="submit"
+            disabled={!newMessage.trim() || isSending}
+            className="p-3.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-2xl hover:from-purple-500 hover:to-blue-500 shadow-lg shadow-purple-900/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105 active:scale-95"
+          >
+            {isSending ? (
+              <div className="animate-spin rounded-full h-5 w-5 border-2 border-white/30 border-t-white"></div>
+            ) : (
+              <Send size={22} />
+            )}
+          </button>
         </form>
       </div>
     </div>
@@ -500,25 +484,33 @@ function MessageBubble({ message, isOwn, senderAvatar, isOptimistic }: {
     switch (message.messageType) {
       case 'image':
         return (
-          <div className="max-w-xs">
+          <div className="max-w-[280px] rounded-2xl overflow-hidden shadow-xl border border-white/10 group relative">
             {message.fileUrl ? (
-              <img
-                src={message.fileUrl}
-                alt="Shared image"
-                className="rounded-lg max-w-full h-auto cursor-pointer"
-                onClick={() => window.open(message.fileUrl, '_blank')}
-              />
+              <>
+                <img
+                  src={message.fileUrl}
+                  alt="Shared"
+                  className="w-full h-auto cursor-zoom-in transition-transform duration-500 group-hover:scale-105"
+                  onClick={() => window.open(message.fileUrl, '_blank')}
+                />
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                  <Download size={24} className="text-white transform scale-90 group-hover:scale-100 transition-transform" />
+                </div>
+              </>
             ) : (
-              <div className="bg-gray-200 p-4 rounded-lg">
-                <p className="text-sm">Loading image...</p>
+              <div className="bg-slate-800 p-8 flex items-center justify-center">
+                <div className="animate-pulse flex flex-col items-center">
+                  <div className="w-8 h-8 rounded-full border-2 border-purple-500 border-t-transparent animate-spin mb-2"></div>
+                  <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Processing Image</p>
+                </div>
               </div>
             )}
           </div>
         );
-        
+
       case 'voice':
         return (
-          <div className="flex items-center gap-2 min-w-[200px]">
+          <div className={`flex items-center gap-3 min-w-[220px] p-1 ${isOwn ? 'text-white' : 'text-gray-100'}`}>
             {message.fileUrl && (
               <audio
                 ref={audioRef}
@@ -526,66 +518,65 @@ function MessageBubble({ message, isOwn, senderAvatar, isOptimistic }: {
                 onEnded={() => setIsPlaying(false)}
               />
             )}
-            
+
             <button
               onClick={playVoiceMessage}
               disabled={!message.fileUrl}
-              className={`p-2 rounded-full ${isOwn ? 'bg-green-700 text-white' : 'bg-gray-200 text-gray-700'} hover:opacity-80 disabled:opacity-50`}
+              className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${isOwn ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-900/20'} disabled:opacity-50`}
             >
-              {isPlaying ? <Pause size={16} /> : <Play size={16} />}
+              {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" className="ml-0.5" />}
             </button>
-            
+
             <div className="flex-1">
-              <div className="text-sm">Voice message</div>
-              <div className="text-xs opacity-70">
-                {message.duration ? formatTime(message.duration) : '0:00'}
+              <div className="h-1 bg-white/10 rounded-full overflow-hidden mb-1.5 relative">
+                <div className={`absolute top-0 left-0 h-full bg-current opacity-40 ${isPlaying ? 'animate-progress' : ''}`} style={{ width: isPlaying ? '100%' : '0%' }}></div>
+              </div>
+              <div className="flex justify-between items-center px-0.5">
+                <span className="text-[11px] font-bold uppercase tracking-wider opacity-60">Voice Note</span>
+                <span className="text-[11px] font-mono tabular-nums opacity-60">
+                  {message.duration ? formatTime(message.duration) : '0:00'}
+                </span>
               </div>
             </div>
-            
-            {message.fileUrl && (
-              <a
-                href={message.fileUrl}
-                download
-                className="p-1 hover:bg-gray-200 rounded"
-              >
-                <Download size={14} />
-              </a>
-            )}
           </div>
         );
-        
+
       default:
-        return <p className="text-sm">{message.message}</p>;
+        return <p className="text-[15px] leading-relaxed break-words whitespace-pre-wrap">{message.message}</p>;
     }
   };
 
   return (
-    <div className={`flex ${isOwn ? "justify-end" : "justify-start"}`}>
-      <div className={`flex items-end space-x-2 max-w-xs lg:max-w-md ${isOwn ? "flex-row-reverse space-x-reverse" : ""}`}>
-        <img
-          src={senderAvatar}
-          alt="Avatar"
-          className="w-8 h-8 rounded-full object-cover"
-          onError={(e) => {
-            e.currentTarget.src = `https://avatar.iran.liara.run/public/boy?username=user`;
-          }}
-        />
+    <div className={`flex ${isOwn ? "justify-end" : "justify-start"} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
+      <div className={`flex items-end gap-2 max-w-[85%] sm:max-w-[70%] lg:max-w-md ${isOwn ? "flex-row-reverse" : "flex-row"}`}>
+        <div className="shrink-0 mb-1">
+          <img
+            src={senderAvatar}
+            alt="User"
+            className="w-8 h-8 rounded-full object-cover border border-white/5 shadow-sm"
+            onError={(e) => {
+              e.currentTarget.src = `https://avatar.iran.liara.run/public/boy?username=user`;
+            }}
+          />
+        </div>
         <div
-          className={`px-4 py-2 rounded-lg ${
-            isOwn
-              ? `bg-green-600 text-white rounded-br-none ${isOptimistic ? 'opacity-70' : ''}`
-              : "bg-white text-gray-900 rounded-bl-none shadow-sm"
-          }`}
+          className={`relative px-4 py-3 rounded-2xl shadow-lg ${isOwn
+            ? `bg-gradient-to-br from-purple-600 to-blue-700 text-white rounded-br-none ${isOptimistic ? 'opacity-70 grayscale-[0.5]' : ''}`
+            : "bg-[#1e293b] text-gray-100 border border-white/5 rounded-bl-none"
+            }`}
         >
           {renderMessageContent()}
-          <div className="flex items-center justify-between mt-1">
-            <p className={`text-xs ${isOwn ? "text-green-100" : "text-gray-500"}`}>
+          <div className={`flex items-center justify-end gap-1.5 mt-1.5 opacity-50 ${isOwn ? "text-purple-100" : "text-gray-400"}`}>
+            <p className="text-[10px] font-medium uppercase tracking-tighter">
               {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </p>
-            {isOptimistic && (
-              <div className="ml-2">
-                <div className="animate-spin rounded-full h-3 w-3 border border-green-200 border-t-transparent"></div>
+            {isOwn && !isOptimistic && (
+              <div className="flex items-center">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-blue-300"><polyline points="20 6 9 17 4 12"></polyline></svg>
               </div>
+            )}
+            {isOptimistic && (
+              <div className="animate-spin rounded-full h-2.5 w-2.5 border border-white/40 border-t-transparent"></div>
             )}
           </div>
         </div>
@@ -593,3 +584,4 @@ function MessageBubble({ message, isOwn, senderAvatar, isOptimistic }: {
     </div>
   );
 }
+

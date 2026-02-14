@@ -1,6 +1,7 @@
 "use client";
 import { createContext, useContext, useEffect, useState } from "react";
 import { io, Socket } from "socket.io-client";
+import { API_URL } from "@/lib/constants";
 
 interface SocketContextType {
   socket: Socket | null;
@@ -21,8 +22,8 @@ export const SocketProvider = ({ children, userId }: { children: React.ReactNode
   useEffect(() => {
     if (userId) {
       console.log("Connecting socket for user:", userId);
-      
-      const newSocket = io("http://localhost:8000", {
+
+      const newSocket = io(API_URL, {
         query: { userId },
         transports: ['websocket', 'polling'],
         reconnection: true,

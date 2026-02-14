@@ -21,15 +21,20 @@ export const sendMessage = async (req, res) => {
         }
 
         const msgType = messageType || 'text';
-        console.log('Message type:', msgType);
-        
+        console.log('Final resolved Message type:', msgType);
+
         if (msgType === 'text' && (!messages || !messages.trim())) {
+            console.error('Validation failed: Message content required for text message');
             return res.status(400).json({ error: "Message content required" });
         }
 
         if ((msgType === 'image' || msgType === 'voice') && !file) {
-            console.error('File required for message type:', msgType);
+            console.error('Validation failed: File required for message type:', msgType);
             return res.status(400).json({ error: `File required for ${msgType} message` });
+        }
+
+        if (file) {
+            console.log('File Mimetype:', file.mimetype);
         }
 
         let conversation = await Conversation.findOne({
@@ -37,6 +42,7 @@ export const sendMessage = async (req, res) => {
         });
 
         if (!conversation) {
+            console.log('No conversation found, creating new one');
             conversation = await Conversation.create({
                 participants: [senderId, reciverId],
                 messages: []
@@ -53,21 +59,30 @@ export const sendMessage = async (req, res) => {
         if (msgType === 'text') {
             messageData.message = messages.trim();
         } else if (file) {
-            const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${file.filename}`;
+            let subfolder = '';
+            if (file.mimetype.startsWith('image/')) subfolder = 'images/';
+            else if (file.mimetype.startsWith('audio/')) subfolder = 'voice/';
+
+            const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${subfolder}${file.filename}`;
+            console.log('Constructed file URL:', fileUrl);
+
             messageData.fileUrl = fileUrl;
             messageData.fileName = file.originalname;
             messageData.fileSize = file.size;
-            
+
             if (msgType === 'voice' && duration) {
-                messageData.duration = parseInt(duration);
+                const parsedDuration = parseInt(duration);
+                messageData.duration = isNaN(parsedDuration) ? 0 : parsedDuration;
+                console.log('Voice duration:', messageData.duration);
             }
-            
+
             messageData.message = msgType === 'voice' ? 'Voice message' : 'Image';
         }
 
+        console.log('Saving message with data:', messageData);
         const newMessage = new Message(messageData);
         const savedMessage = await newMessage.save();
-        
+
         conversation.messages.push(savedMessage._id);
         await conversation.save();
 
@@ -84,7 +99,10 @@ export const sendMessage = async (req, res) => {
 
     } catch (error) {
         console.error("Send message error:", error);
-        res.status(500).json({ error: "Failed to send message" });
+        res.status(500).json({
+            error: "Failed to send message",
+            details: error.message
+        });
     }
 };
 

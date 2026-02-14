@@ -6,7 +6,14 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: ["http://localhost:3000", "http://localhost:3001"],
+        origin: [
+            "http://localhost:3000",
+            "http://localhost:3001",
+            "http://localhost:3002",
+            "http://127.0.0.1:3000",
+            "http://127.0.0.1:3001",
+            "http://127.0.0.1:3002"
+        ],
         credentials: true
     }
 });
@@ -28,7 +35,7 @@ io.on("connection", (socket) => {
     // Handle disconnect
     socket.on("disconnect", () => {
         console.log(`Socket ${socket.id} disconnected`);
-        
+
         // Find and remove the disconnected user
         for (const [key, value] of Object.entries(userSocketMap)) {
             if (value === socket.id) {
@@ -37,7 +44,7 @@ io.on("connection", (socket) => {
                 break;
             }
         }
-        
+
         // Update online users for all clients
         io.emit("getOnlineUsers", Object.keys(userSocketMap));
     });

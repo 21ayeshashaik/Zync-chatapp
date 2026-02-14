@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Image, Send } from "lucide-react";
+import { Image as ImageIcon, Send, X } from "lucide-react";
 
 interface ImageUploaderProps {
   onSend: (imageFile: File) => void;
@@ -42,33 +42,44 @@ export default function ImageUploader({ onSend, onCancel }: ImageUploaderProps) 
 
   if (selectedImage) {
     return (
-      <div className="bg-gray-100 p-3 rounded-lg max-w-xs">
-        <img
-          src={previewUrl}
-          alt="Image preview"
-          className="w-full h-full object-cover rounded"
-        />
-        
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-gray-600">
-            {selectedImage.name} ({(selectedImage.size / 1024 / 1024).toFixed(2)} MB)
+      <div className="bg-slate-800/90 backdrop-blur-md p-4 rounded-2xl border border-white/10 shadow-2xl max-w-sm animate-in fade-in zoom-in-95">
+        <div className="relative aspect-video rounded-xl overflow-hidden mb-4 border border-white/5">
+          <img
+            src={previewUrl}
+            alt="Preview"
+            className="w-full h-full object-cover"
+          />
+          <button
+            onClick={resetState}
+            className="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-black/70 text-white rounded-full backdrop-blur-sm transition-all"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-gray-200 truncate">{selectedImage.name}</p>
+            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-0.5">
+              {(selectedImage.size / 1024 / 1024).toFixed(2)} MB • READY
+            </p>
           </div>
-          
-          <div className="flex gap-2">
+
+          <div className="flex items-center gap-2">
             {onCancel && (
-              <div
+              <button
                 onClick={onCancel}
-                className="px-3 py-1 text-sm text-gray-500 hover:text-gray-700 cursor-pointer"
+                className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-gray-500 hover:text-white transition-colors"
               >
                 Cancel
-              </div>
+              </button>
             )}
-            <div
+            <button
               onClick={sendImage}
-              className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 cursor-pointer"
+              className="p-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl transition-all shadow-lg shadow-blue-900/20 active:scale-95"
             >
-              <Send size={16} />
-            </div>
+              <Send size={18} />
+            </button>
           </div>
         </div>
       </div>
@@ -77,13 +88,14 @@ export default function ImageUploader({ onSend, onCancel }: ImageUploaderProps) 
 
   return (
     <>
-      <div
+      <button
         onClick={() => fileInputRef.current?.click()}
-        className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full cursor-pointer"
+        className="flex items-center justify-center gap-3 w-full bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 py-3 rounded-xl border border-blue-500/20 transition-all active:scale-[0.98]"
       >
-        <Image size={20} />
-      </div>
-      
+        <ImageIcon size={20} />
+        <span className="text-sm font-bold tracking-wider uppercase">Select a photo</span>
+      </button>
+
       <input
         ref={fileInputRef}
         type="file"
@@ -94,3 +106,4 @@ export default function ImageUploader({ onSend, onCancel }: ImageUploaderProps) 
     </>
   );
 }
+
