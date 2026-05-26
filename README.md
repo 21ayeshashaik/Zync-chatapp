@@ -53,6 +53,6 @@ zync-chatapp/
 
 ---
 
-Live -https://zync-chatapp-6zz8.vercel.app/
+Live -[https://zync-chatapp-6zz8.vercel.app/](https://zync-chatapp-x9w2.vercel.app/)
 
 
