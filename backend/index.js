@@ -45,7 +45,8 @@ app.use(cors({
         'http://127.0.0.1:3000',
         'http://127.0.0.1:3001',
         'http://127.0.0.1:3002',
-        'https://zync-chatapp-6zz8.vercel.app/'
+        'https://zync-chatapp-x9w2.vercel.app',
+        'https://zync-chatapp-6zz8.vercel.app'
     ],
     credentials: true
 }));
